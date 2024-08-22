@@ -1,0 +1,113 @@
+###########################################################
+# Setup ethercat hal with cia402
+###########################################################
+
+loadrt [KINS]KINEMATICS
+loadrt [EMCMOT]EMCMOT servo_period_nsec=[EMCMOT]SERVO_PERIOD num_joints=[KINS]JOINTS
+
+loadusr -W lcec_conf mpcnc_plasma_ethercat-conf.xml
+loadrt lcec
+loadrt cia402 count=3
+
+###########################################################
+# Functions servo-thread
+###########################################################
+
+addf lcec.read-all servo-thread
+addf cia402.0.read-all servo-thread
+addf cia402.1.read-all servo-thread
+addf cia402.2.read-all servo-thread
+
+addf motion-command-handler servo-thread
+addf motion-controller servo-thread
+
+addf cia402.0.write-all servo-thread
+addf cia402.1.write-all servo-thread
+addf cia402.2.write-all servo-thread
+addf lcec.write-all servo-thread
+
+
+#########################################
+#nets
+#########################################
+net emc-enable => iocontrol.0.emc-enable-in
+sets emc-enable 1
+
+#config
+
+#
+# I/O module - RTEC1616 (cia402.0)
+
+# --- 16 Outputs
+#M3,M4,M5
+net spindle-on spindle.0.on => lcec.0.0.out-09
+net mist-on iocontrol.0.coolant-mist => lcec.0.0.out-10 
+net coolant-on => iocontrol.0.coolant-flood =>	lcec.0.0.out-15 
+
+# --- 16 inputs
+
+
+ 
+# X-AXIS - ECR86 (cia402.1)
+
+# ---joint 0 signals for motion
+net x-enable     <= joint.0.amp-enable-out
+net x-pos-cmd    <= joint.0.motor-pos-cmd
+net x-vel-cmd	 <= joint.0.vel-cmd
+net x-pos-fb     <= joint.0.motor-pos-fb
+
+# ---connect stepperdriver X to joint
+net x-enable     => cia402.1.enable
+net x-pos-cmd    => cia402.1.pos-cmd
+net x-pos-fb     => cia402.1.pos-fb
+
+# ---ECR86 stepperdriver X settings
+setp cia402.1.csp-mode 1
+setp cia402.1.pos-scale 800
+
+# ---from stepperdriver X (ethercat) to cia402.1
+net x-statusword      lcec.0.1.cia-statusword  => cia402.1.cia-statusword
+net x-opmode-display  lcec.0.1.opmode-display  => cia402.1.opmode-display
+net x-drv-act-pos     lcec.0.1.actual-position => cia402.1.drv-actual-position
+net x-drv-act-velo    lcec.0.1.actual-velocity => cia402.1.drv-actual-velocity
+
+# ---from cia402.1 to stepperdriver X (ethercat)
+net x-controlword         cia402.1.cia-controlword     => lcec.0.1.cia-controlword
+net x-modes-of-operation  cia402.1.opmode              => lcec.0.1.opmode
+net x-drv-target-pos      cia402.1.drv-target-position => lcec.0.1.target-position
+net x-drv-target-velo     cia402.1.drv-target-velocity => lcec.0.1.target-velocity
+
+
+# Y-AXIS - ECR86 (cia402.2)
+
+# ---joint 1 signals for motion
+net y-enable     <= joint.1.amp-enable-out
+net y-pos-cmd    <= joint.1.motor-pos-cmd
+net y-vel-cmd	 <= joint.1.vel-cmd
+net y-pos-fb     <= joint.1.motor-pos-fb
+
+# ---connect stepperdriver Y to joint
+net y-enable     => cia402.2.enable
+net y-pos-cmd    => cia402.2.pos-cmd
+net y-pos-fb     => cia402.2.pos-fb
+
+# ---ECR86 stepperdriver Y settings
+setp cia402.2.csp-mode 1
+setp cia402.2.pos-scale 800
+
+# ---from stepperdriver Y (ethercat) to cia402.2
+net y-statusword      lcec.0.2.cia-statusword  => cia402.2.cia-statusword
+net y-opmode-display  lcec.0.2.opmode-display  => cia402.2.opmode-display
+net y-drv-act-pos     lcec.0.2.actual-position => cia402.2.drv-actual-position
+net y-drv-act-velo    lcec.0.2.actual-velocity => cia402.2.drv-actual-velocity
+
+# ---from cia402.2 to stepperdriver 2 (ethercat)
+net y-controlword         cia402.2.cia-controlword     => lcec.0.2.cia-controlword
+net y-modes-of-operation  cia402.2.opmode              => lcec.0.2.opmode
+net y-drv-target-pos      cia402.2.drv-target-position => lcec.0.2.target-position
+net y-drv-target-velo     cia402.2.drv-target-velocity => lcec.0.2.target-velocity
+
+
+
+
+
